@@ -20,9 +20,12 @@ import AgentGraph from "@/components/agent-graph"
 import ContentIdeasList from "@/components/content-ideas-list"
 import VideoScriptViewer from "@/components/video-script-viewer"
 import LinkedInPostViewer from "@/components/linkedin-post-viewer"
-import ApiConfigDialog, { type ApiConfig } from "@/components/api-config-dialog"
+import StepConfigDialog from "@/components/step-config-dialog"
 import { Cog, Pause, Play } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { toast } from "sonner"
+import ApiConfigDialog, { type ApiConfig } from "@/components/api-config-dialog"
+import VideoScriptEditor from "@/components/video-script-editor"
 
 export default function Home() {
   const [transcript, setTranscript] = useState("")
@@ -69,6 +72,23 @@ export default function Home() {
     scripts: false,
     linkedin: false
   });
+  const [stepInputs, setStepInputs] = useState({
+    ideas: {
+      prompt: '',
+      result: null
+    },
+    scripts: {
+      prompt: '',
+      selectedIdeaId: null,
+      result: null
+    },
+    linkedin: {
+      prompt: '',
+      selectedScriptId: null,
+      result: null
+    }
+  });
+  const [stepConfigOpen, setStepConfigOpen] = useState(false);
 
   const selectedIdea = contentIdeas.find((idea) => idea.id === selectedIdeaId)
   const selectedScript = videoScripts.find((script) => script.id === selectedScriptId)
@@ -201,6 +221,22 @@ export default function Home() {
     }
   }
 
+  const handleUpdateIdea = (updatedIdea: ContentIdea) => {
+    setContentIdeas(ideas => 
+      ideas.map(idea => 
+        idea.id === updatedIdea.id ? updatedIdea : idea
+      )
+    );
+  };
+
+  const handleUpdateScript = (updatedScript: VideoScript) => {
+    setVideoScripts(scripts => 
+      scripts.map(script => 
+        script.id === updatedScript.id ? updatedScript : script
+      )
+    );
+  };
+
   const GenerateButtons = () => (
     <div className="flex gap-2">
       <Button
@@ -229,57 +265,93 @@ export default function Home() {
     if (!transcript.trim() || !isApiConfigured) return;
 
     try {
-      setIsProcessing(true);
-      setIsPaused(false);
-
       switch (currentStep) {
         case 'idle':
           setCurrentStep('ideas');
-          setIsEditingPrompt(true);
+          setStepConfigOpen(true);
           break;
 
         case 'ideas':
-          updateStatus('ideas', 10);
-          const ideas = await generateContentIdeas(transcript, stepPrompts.ideas);
+          setIsProcessing(true);
+          updateStatus("ideas", 10);
+          const ideas = await generateContentIdeas(transcript, stepInputs.ideas.prompt || instructions);
           setContentIdeas(ideas);
           if (ideas.length > 0) {
             setSelectedIdeaId(ideas[0].id);
           }
+          setStepInputs(prev => ({
+            ...prev,
+            ideas: { ...prev.ideas, result: ideas }
+          }));
           setCompletedSteps(prev => ({ ...prev, ideas: true }));
           setCurrentStep('scripts');
-          setIsEditingPrompt(true);
+          updateStatus("ideas", 100);
+          setIsProcessing(false);
           break;
 
         case 'scripts':
-          if (!selectedIdeaId) return;
+          if (!selectedIdeaId) {
+            toast.error("Please select and finalize a content idea first");
+            return;
+          }
+          setIsProcessing(true);
+          updateStatus("scripts", 10);
           const selectedIdea = contentIdeas.find(i => i.id === selectedIdeaId);
           if (!selectedIdea) return;
           
-          updateStatus('scripts', 40);
-          const generatedScript = await generateVideoScript(selectedIdea, transcript, stepPrompts.scripts);
+          const generatedScript = await generateVideoScript(
+            selectedIdea, 
+            transcript, 
+            `Use this content idea as basis: ${selectedIdea.title}\n${selectedIdea.description}\n\n${stepInputs.scripts.prompt || instructions}`
+          );
           setVideoScripts([...videoScripts, generatedScript]);
+          setStepInputs(prev => ({
+            ...prev,
+            scripts: { 
+              ...prev.scripts, 
+              result: generatedScript,
+              selectedIdeaId
+            }
+          }));
           setSelectedScriptId(generatedScript.id);
           setCompletedSteps(prev => ({ ...prev, scripts: true }));
           setCurrentStep('linkedin');
-          setIsEditingPrompt(true);
+          updateStatus("scripts", 100);
+          setIsProcessing(false);
           break;
 
         case 'linkedin':
-          if (!selectedScriptId) return;
+          if (!selectedScriptId) {
+            toast.error("Please select and finalize a video script first");
+            return;
+          }
+          setIsProcessing(true);
+          updateStatus("linkedin", 10);
           const selectedScript = videoScripts.find(s => s.id === selectedScriptId);
           if (!selectedScript) return;
 
-          updateStatus('linkedin', 80);
-          const post = await generateLinkedInPost(selectedScript);
+          const post = await generateLinkedInPost(
+            selectedScript,
+            stepInputs.linkedin.prompt || instructions
+          );
           setLinkedInPosts([...linkedInPosts, post]);
+          setStepInputs(prev => ({
+            ...prev,
+            linkedin: { 
+              ...prev.linkedin, 
+              result: post,
+              selectedScriptId 
+            }
+          }));
           setCompletedSteps(prev => ({ ...prev, linkedin: true }));
           setCurrentStep('idle');
-          updateStatus('complete', 100);
+          updateStatus("complete", 100);
+          setIsProcessing(false);
           break;
       }
     } catch (error) {
       console.error("Error in step execution:", error);
-    } finally {
+      toast.error("Error executing step");
       setIsProcessing(false);
     }
   };
@@ -393,9 +465,15 @@ export default function Home() {
                   ideas={contentIdeas}
                   selectedIdeaId={selectedIdeaId}
                   onSelectIdea={handleSelectIdea}
+                  onUpdateIdea={handleUpdateIdea}
                 />
 
-                {selectedScript && <VideoScriptViewer script={selectedScript} />}
+                {selectedScript && (
+                  <VideoScriptEditor
+                    script={selectedScript}
+                    onSave={handleUpdateScript}
+                  />
+                )}
 
                 {selectedLinkedInPost && <LinkedInPostViewer post={selectedLinkedInPost} />}
               </div>
