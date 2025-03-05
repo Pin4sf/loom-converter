@@ -40,52 +40,55 @@ export default function AgentGraph({
 
   // Function to reset the graph to its default layout
   const resetLayout = useCallback(() => {
-    // Create a horizontal layout for the graph
+    const verticalSpacing = 150;
+    const centerX = 400;
+    
     const newNodes: Node[] = [
       {
         id: "transcript",
         data: { label: "Transcript" },
-        position: { x: 50, y: 100 },
+        position: { x: centerX, y: 50 },
         className: "react-flow__node",
       },
       {
         id: "agent1",
         data: { label: "Agent 1: Ideas" },
-        position: { x: 200, y: 50 },
+        position: { x: centerX, y: verticalSpacing },
         className: `react-flow__node ${status.stage === "ideas" && isProcessing ? "active" : ""}`,
       },
       {
         id: "content-ideas",
         data: { label: "Content Ideas" },
-        position: { x: 200, y: 150 },
+        position: { x: centerX, y: verticalSpacing * 2 },
         className: `react-flow__node ${selectedIdeaId ? "active" : ""}`,
       },
       {
-        id: "agent2",
+        id: "agent2", 
         data: { label: "Agent 2: Script" },
-        position: { x: 350, y: 100 },
+        position: { x: centerX, y: verticalSpacing * 3 },
         className: `react-flow__node ${status.stage === "scripts" && isProcessing ? "active" : ""}`,
       },
       {
         id: "final-script",
         data: { label: "Final Script" },
-        position: { x: 500, y: 100 },
+        position: { x: centerX, y: verticalSpacing * 4 },
         className: `react-flow__node ${selectedScriptId ? "active" : ""}`,
       },
       {
         id: "agent3",
         data: { label: "Agent 3: LinkedIn" },
-        position: { x: 650, y: 100 },
+        position: { x: centerX, y: verticalSpacing * 5 },
         className: `react-flow__node ${status.stage === "linkedin" && isProcessing ? "active" : ""}`,
       },
       {
         id: "linkedin-post",
         data: { label: "LinkedIn Post" },
-        position: { x: 800, y: 100 },
+        position: { x: centerX, y: verticalSpacing * 6 },
         className: "react-flow__node",
       },
     ]
 
+    // Update edges for vertical layout
     const newEdges: Edge[] = [
       {
         id: "transcript-agent1",

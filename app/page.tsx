@@ -22,6 +22,7 @@ import VideoScriptViewer from "@/components/video-script-viewer"
 import LinkedInPostViewer from "@/components/linkedin-post-viewer"
 import ApiConfigDialog, { type ApiConfig } from "@/components/api-config-dialog"
 import { Cog, Pause, Play } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function Home() {
   const [transcript, setTranscript] = useState("")
@@ -188,18 +189,21 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-yellow-300/30 to-white">
-      <div className="container py-8">
+    <div className="min-h-screen">
+      <div className="container relative z-10 py-8 mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Loom Converter</h1>
-          <Button variant="outline" size="sm" onClick={() => setIsApiConfigOpen(true)}>
-            <Cog className="mr-2 h-4 w-4" />
-            Configure API Keys
-          </Button>
+          <h1 className="text-3xl font-bold">Contentformer</h1>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={() => setIsApiConfigOpen(true)}>
+              <Cog className="mr-2 h-4 w-4" />
+              Configure API Keys
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
             <Tabs defaultValue="direct-transcript">
               <TabsList className="w-full">
                 <TabsTrigger value="video-upload" className="flex-1">
@@ -307,7 +311,7 @@ export default function Home() {
             )}
           </div>
 
-          <div>
+          <div className="lg:sticky lg:top-4">
             <Card className="sticky top-4">
               <CardHeader>
                 <CardTitle>Agent Activity</CardTitle>
