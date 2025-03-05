@@ -56,6 +56,19 @@ export default function Home() {
     }
   })
   const [isApiConfigured, setIsApiConfigured] = useState(false)
+  const [generationMode, setGenerationMode] = useState<'all' | 'step'>('all');
+  const [currentStep, setCurrentStep] = useState<'idle' | 'ideas' | 'scripts' | 'linkedin'>('idle');
+  const [stepPrompts, setStepPrompts] = useState({
+    ideas: '',
+    scripts: '',
+    linkedin: ''
+  });
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState({
+    ideas: false,
+    scripts: false,
+    linkedin: false
+  });
 
   const selectedIdea = contentIdeas.find((idea) => idea.id === selectedIdeaId)
   const selectedScript = videoScripts.find((script) => script.id === selectedScriptId)
@@ -188,6 +201,89 @@ export default function Home() {
     }
   }
 
+  const GenerateButtons = () => (
+    <div className="flex gap-2">
+      <Button
+        onClick={() => {
+          setGenerationMode('all');
+          handleGenerateContent();
+        }}
+        disabled={!transcript.trim() || !isApiConfigured || (isProcessing && !isPaused)}
+      >
+        Run All
+      </Button>
+      <Button
+        onClick={() => {
+          setGenerationMode('step');
+          handleNextStep();
+        }}
+        disabled={!transcript.trim() || !isApiConfigured || (isProcessing && !isPaused)}
+        variant="outline"
+      >
+        Run Next Step
+      </Button>
+    </div>
+  );
+
+  const handleNextStep = async () => {
+    if (!transcript.trim() || !isApiConfigured) return;
+
+    try {
+      setIsProcessing(true);
+      setIsPaused(false);
+
+      switch (currentStep) {
+        case 'idle':
+          setCurrentStep('ideas');
+          setIsEditingPrompt(true);
+          break;
+
+        case 'ideas':
+          updateStatus('ideas', 10);
+          const ideas = await generateContentIdeas(transcript, stepPrompts.ideas);
+          setContentIdeas(ideas);
+          if (ideas.length > 0) {
+            setSelectedIdeaId(ideas[0].id);
+          }
+          setCompletedSteps(prev => ({ ...prev, ideas: true }));
+          setCurrentStep('scripts');
+          setIsEditingPrompt(true);
+          break;
+
+        case 'scripts':
+          if (!selectedIdeaId) return;
+          const selectedIdea = contentIdeas.find(i => i.id === selectedIdeaId);
+          if (!selectedIdea) return;
+          
+          updateStatus('scripts', 40);
+          const generatedScript = await generateVideoScript(selectedIdea, transcript, stepPrompts.scripts);
+          setVideoScripts([...videoScripts, generatedScript]);
+          setSelectedScriptId(generatedScript.id);
+          setCompletedSteps(prev => ({ ...prev, scripts: true }));
+          setCurrentStep('linkedin');
+          setIsEditingPrompt(true);
+          break;
+
+        case 'linkedin':
+          if (!selectedScriptId) return;
+          const selectedScript = videoScripts.find(s => s.id === selectedScriptId);
+          if (!selectedScript) return;
+
+          updateStatus('linkedin', 80);
+          const post = await generateLinkedInPost(selectedScript);
+          setLinkedInPosts([...linkedInPosts, post]);
+          setCompletedSteps(prev => ({ ...prev, linkedin: true }));
+          setCurrentStep('idle');
+          updateStatus('complete', 100);
+          break;
+      }
+    } catch (error) {
+      console.error("Error in step execution:", error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <div className="container relative z-10 py-8 mx-auto px-4 sm:px-6 lg:px-8">
@@ -255,12 +351,7 @@ export default function Home() {
                           {isPaused ? "Resume" : "Pause"}
                         </Button>
                       )}
-                      <Button
-                        onClick={handleGenerateContent}
-                        disabled={!transcript.trim() || !isApiConfigured || (isProcessing && !isPaused)}
-                      >
-                        Generate Content
-                      </Button>
+                      <GenerateButtons />
                     </div>
                   </CardContent>
                 </Card>
@@ -325,6 +416,7 @@ export default function Home() {
                   selectedScriptId={selectedScriptId}
                   isProcessing={isProcessing}
                   status={status}
+                  completedSteps={completedSteps}
                 />
               </CardContent>
             </Card>
