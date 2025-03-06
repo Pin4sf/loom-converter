@@ -152,16 +152,16 @@ export async function generateContentIdeas(
         }
 
         const prompt = `
-You are an expert content strategist. Analyze the following transcript and generate 3-5 high-level content ideas or topics that could be turned into engaging video scripts.
-
-For each idea, provide:
-1. A catchy title
-2. A brief description of what the video would cover
+You are an expert content strategist for an AI consulting company. Based on this transcript & being open to adding more to it, what are some ideas for videos that you can come up with?
 
 TRANSCRIPT:
 ${transcript}
 
 ${instructions ? `ADDITIONAL INSTRUCTIONS: ${instructions}` : ""}
+
+For each idea, provide:
+1. A catchy title
+2. A brief description of what the video would cover
 
 IMPORTANT: Format your response STRICTLY as a valid JSON array of objects with 'title' and 'description' fields. Do not include any explanations, markdown formatting, or additional text outside of the JSON array.
 Example format:
@@ -340,7 +340,7 @@ export async function generateVideoScript(
         }
 
         const prompt = `
-You are an expert video script writer. Create a detailed, engaging video script based on the following content idea and original transcript.
+Convert this transcript into a blog-style video script, keeping the proper hook & tone, refining the examples and concepts to make them clearer. The script should be written in first person and feel personal.
 
 CONTENT IDEA:
 Title: ${idea.title}
@@ -351,13 +351,13 @@ ${transcript}
 
 ${instructions ? `ADDITIONAL INSTRUCTIONS: ${instructions}` : ""}
 
-Create a professional video script that includes:
+Create a well-structured blog-style script that includes:
 1. An attention-grabbing introduction
 2. Clear sections with headers
-3. Engaging talking points
-4. A strong call-to-action conclusion
+3. Engaging talking points in first person perspective
+4. Personal anecdotes or examples where appropriate
 
-Format your response as a well-structured script with clear sections. Do not include any explanations or additional text outside the script.
+Format your response as a well-structured blog post that could be read as a script. Use a conversational tone throughout.
 `;
 
         let text = "";
@@ -463,7 +463,7 @@ export async function generateLinkedInPost(
         }
 
         const prompt = `
-You are a social media expert specializing in LinkedIn content. Create an engaging LinkedIn post to promote a video with the following script.
+You are a social media expert specializing in LinkedIn content for an AI consulting company. Create an engaging LinkedIn post to promote a video with the following script.
 
 VIDEO TITLE: ${script.title}
 
@@ -473,7 +473,7 @@ ${script.script}
 Create a LinkedIn post that:
 1. Has an attention-grabbing first line
 2. Highlights the key value points from the video
-3. Includes relevant hashtags
+3. Includes relevant hashtags related to AI consulting and technology
 4. Has a clear call-to-action
 
 Format your response as a ready-to-post LinkedIn update. Do not include any explanations or additional text outside the post.
