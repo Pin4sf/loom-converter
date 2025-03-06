@@ -21,11 +21,154 @@ import ContentIdeasList from "@/components/content-ideas-list"
 import VideoScriptViewer from "@/components/video-script-viewer"
 import LinkedInPostViewer from "@/components/linkedin-post-viewer"
 import StepConfigDialog from "@/components/step-config-dialog"
-import { Cog, Pause, Play } from "lucide-react"
+import { Cog, Pause, Play, ArrowRight, Edit } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { toast } from "sonner"
 import ApiConfigDialog, { type ApiConfig } from "@/components/api-config-dialog"
 import VideoScriptEditor from "@/components/video-script-editor"
+
+interface ActionBarProps {
+  isProcessing: boolean;
+  isPaused: boolean;
+  isApiConfigured: boolean;
+  transcript: string;
+  handleGenerateContent: () => void;
+  handleNextStep: () => void;
+  handlePauseResume: () => void;
+  currentStep: 'idle' | 'ideas' | 'scripts' | 'linkedin';
+  stepInputs: {
+    ideas: { prompt: string; result: ContentIdea[] | null };
+    scripts: { prompt: string; selectedIdeaId: string | null; result: VideoScript | null };
+    linkedin: { prompt: string; selectedScriptId: string | null; result: LinkedInPost | null };
+  };
+  setStepInputs: React.Dispatch<React.SetStateAction<{
+    ideas: { prompt: string; result: ContentIdea[] | null };
+    scripts: { prompt: string; selectedIdeaId: string | null; result: VideoScript | null };
+    linkedin: { prompt: string; selectedScriptId: string | null; result: LinkedInPost | null };
+  }>>;
+  showStepInput: boolean;
+  setShowStepInput: React.Dispatch<React.SetStateAction<boolean>>;
+  status: ProcessingStatus;
+  loadingMessage: string;
+}
+
+const ActionBar = ({ 
+  isProcessing, 
+  isPaused, 
+  isApiConfigured, 
+  transcript, 
+  handleGenerateContent, 
+  handleNextStep, 
+  handlePauseResume,
+  currentStep,
+  stepInputs,
+  setStepInputs,
+  showStepInput,
+  setShowStepInput,
+  status,
+  loadingMessage
+}: ActionBarProps) => {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 py-3 px-4">
+      <div className="container mx-auto flex flex-col gap-2">
+        {showStepInput && (
+          <div className="flex gap-2 items-center mb-2">
+            <Textarea 
+              placeholder={`Additional instructions for ${currentStep} step (optional)`}
+              className="text-sm min-h-[60px]"
+              value={currentStep !== 'idle' ? stepInputs[currentStep]?.prompt || '' : ''}
+              onChange={(e) => {
+                if (currentStep !== 'idle') {
+                  setStepInputs(prev => ({
+                    ...prev,
+                    [currentStep]: {
+                      ...prev[currentStep as keyof typeof prev],
+                      prompt: e.target.value
+                    }
+                  }));
+                }
+              }}
+            />
+            <Button 
+              size="sm" 
+              className="shrink-0"
+              onClick={() => {
+                setShowStepInput(false);
+                handleNextStep();
+              }}
+            >
+              <ArrowRight className="h-4 w-4 mr-2" />
+              Continue
+            </Button>
+          </div>
+        )}
+        
+        {isProcessing && (
+          <div className="mb-2">
+            <div className="space-y-2">
+              <p className="text-sm text-center">{loadingMessage}</p>
+              <Progress value={status.progress} className="w-full" />
+              <p className="text-xs text-center text-muted-foreground">{status.message}</p>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex justify-between items-center">
+          <div className="text-sm font-medium flex items-center gap-2">
+            {isProcessing ? (
+              <span className="text-yellow-600 dark:text-yellow-400">
+                Processing: {currentStep === 'idle' ? 'Complete' : currentStep}
+              </span>
+            ) : (
+              <>
+                <span>
+                  Ready {currentStep !== 'idle' ? `(Next step: ${currentStep})` : ''}
+                </span>
+                {currentStep !== 'idle' && !showStepInput && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowStepInput(true)}
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    Add instructions
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {isProcessing && (
+              <Button variant="outline" onClick={handlePauseResume}>
+                {isPaused ? <Play className="mr-2 h-4 w-4" /> : <Pause className="mr-2 h-4 w-4" />}
+                {isPaused ? "Resume" : "Pause"}
+              </Button>
+            )}
+            <Button
+              onClick={() => {
+                if (currentStep !== 'idle' && !isProcessing && !showStepInput) {
+                  setShowStepInput(true);
+                } else if (currentStep === 'idle' && !isProcessing) {
+                  handleNextStep();
+                }
+              }}
+              disabled={!transcript.trim() || !isApiConfigured || (isProcessing && !isPaused)}
+              variant="outline"
+            >
+              Run Next Step
+            </Button>
+            <Button
+              onClick={() => handleGenerateContent()}
+              disabled={!transcript.trim() || !isApiConfigured || (isProcessing && !isPaused)}
+            >
+              Run All
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function Home() {
   const [transcript, setTranscript] = useState("")
@@ -72,7 +215,22 @@ export default function Home() {
     scripts: false,
     linkedin: false
   });
-  const [stepInputs, setStepInputs] = useState({
+  const [stepInputs, setStepInputs] = useState<{
+    ideas: {
+      prompt: string;
+      result: ContentIdea[] | null;
+    };
+    scripts: {
+      prompt: string;
+      selectedIdeaId: string | null;
+      result: VideoScript | null;
+    };
+    linkedin: {
+      prompt: string;
+      selectedScriptId: string | null;
+      result: LinkedInPost | null;
+    };
+  }>({
     ideas: {
       prompt: '',
       result: null
@@ -89,6 +247,7 @@ export default function Home() {
     }
   });
   const [stepConfigOpen, setStepConfigOpen] = useState(false);
+  const [showStepInput, setShowStepInput] = useState(false);
 
   const selectedIdea = contentIdeas.find((idea) => idea.id === selectedIdeaId)
   const selectedScript = videoScripts.find((script) => script.id === selectedScriptId)
@@ -268,11 +427,12 @@ export default function Home() {
       switch (currentStep) {
         case 'idle':
           setCurrentStep('ideas');
-          setStepConfigOpen(true);
+          setShowStepInput(true);
           break;
 
         case 'ideas':
           setIsProcessing(true);
+          setShowStepInput(false);
           updateStatus("ideas", 10);
           const ideas = await generateContentIdeas(transcript, stepInputs.ideas.prompt || instructions);
           setContentIdeas(ideas);
@@ -287,6 +447,7 @@ export default function Home() {
           setCurrentStep('scripts');
           updateStatus("ideas", 100);
           setIsProcessing(false);
+          setShowStepInput(true);
           break;
 
         case 'scripts':
@@ -295,9 +456,14 @@ export default function Home() {
             return;
           }
           setIsProcessing(true);
+          setShowStepInput(false);
           updateStatus("scripts", 10);
           const selectedIdea = contentIdeas.find(i => i.id === selectedIdeaId);
-          if (!selectedIdea) return;
+          if (!selectedIdea) {
+            setIsProcessing(false);
+            toast.error("Selected idea not found");
+            return;
+          }
           
           const generatedScript = await generateVideoScript(
             selectedIdea, 
@@ -318,6 +484,7 @@ export default function Home() {
           setCurrentStep('linkedin');
           updateStatus("scripts", 100);
           setIsProcessing(false);
+          setShowStepInput(true);
           break;
 
         case 'linkedin':
@@ -326,14 +493,16 @@ export default function Home() {
             return;
           }
           setIsProcessing(true);
+          setShowStepInput(false);
           updateStatus("linkedin", 10);
           const selectedScript = videoScripts.find(s => s.id === selectedScriptId);
-          if (!selectedScript) return;
+          if (!selectedScript) {
+            setIsProcessing(false);
+            toast.error("Selected script not found");
+            return;
+          }
 
-          const post = await generateLinkedInPost(
-            selectedScript,
-            stepInputs.linkedin.prompt || instructions
-          );
+          const post = await generateLinkedInPost(selectedScript);
           setLinkedInPosts([...linkedInPosts, post]);
           setStepInputs(prev => ({
             ...prev,
@@ -356,8 +525,30 @@ export default function Home() {
     }
   };
 
+  const handleStepConfig = (config: { prompt: string }) => {
+    // Update the step prompt
+    setStepPrompts(prev => ({
+      ...prev,
+      [currentStep]: config.prompt
+    }));
+    
+    // Update the step inputs
+    setStepInputs(prev => ({
+      ...prev,
+      [currentStep]: {
+        ...prev[currentStep as keyof typeof prev],
+        prompt: config.prompt
+      }
+    }));
+    
+    // Execute the current step
+    if (currentStep === 'ideas') {
+      handleNextStep();
+    }
+  };
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-16">
       <div className="container relative z-10 py-8 mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Contentformer</h1>
@@ -416,14 +607,13 @@ export default function Home() {
                       onChange={(e) => setInstructions(e.target.value)}
                       disabled={isProcessing}
                     />
-                    <div className="flex justify-end gap-2">
-                      {isProcessing && (
-                        <Button variant="outline" onClick={handlePauseResume}>
-                          {isPaused ? <Play className="mr-2 h-4 w-4" /> : <Pause className="mr-2 h-4 w-4" />}
-                          {isPaused ? "Resume" : "Pause"}
-                        </Button>
-                      )}
-                      <GenerateButtons />
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={() => handleGenerateContent()}
+                        disabled={!transcript.trim() || !isApiConfigured || (isProcessing && !isPaused)}
+                      >
+                        Run All
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -431,30 +621,18 @@ export default function Home() {
             </Tabs>
 
             {!isApiConfigured && (
-              <Card className="mt-4 border-yellow-500 bg-yellow-50">
+              <Card className="mt-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
                 <CardContent className="pt-6">
-                  <p className="text-sm text-center text-yellow-700">
+                  <p className="text-sm text-center text-yellow-700 dark:text-yellow-400">
                     Please configure your API keys before generating content.
                     <Button
                       variant="link"
-                      className="text-yellow-700 underline p-0 h-auto ml-1"
+                      className="text-yellow-700 dark:text-yellow-400 underline p-0 h-auto ml-1"
                       onClick={() => setIsApiConfigOpen(true)}
                     >
                       Configure now
                     </Button>
                   </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {isProcessing && (
-              <Card className="mt-4">
-                <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    <p className="text-sm text-center">{loadingMessage}</p>
-                    <Progress value={status.progress} className="w-full" />
-                    <p className="text-xs text-center text-muted-foreground">{status.message}</p>
-                  </div>
                 </CardContent>
               </Card>
             )}
@@ -480,24 +658,26 @@ export default function Home() {
             )}
           </div>
 
-          <div className="lg:sticky lg:top-4">
-            <Card className="sticky top-4">
-              <CardHeader>
-                <CardTitle>Agent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AgentGraph
-                  contentIdeas={contentIdeas}
-                  videoScripts={videoScripts}
-                  linkedInPosts={linkedInPosts}
-                  selectedIdeaId={selectedIdeaId}
-                  selectedScriptId={selectedScriptId}
-                  isProcessing={isProcessing}
-                  status={status}
-                  completedSteps={completedSteps}
-                />
-              </CardContent>
-            </Card>
+          <div className="lg:col-span-1">
+            <div className="sticky top-4 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Agent Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AgentGraph
+                    contentIdeas={contentIdeas}
+                    videoScripts={videoScripts}
+                    linkedInPosts={linkedInPosts}
+                    selectedIdeaId={selectedIdeaId}
+                    selectedScriptId={selectedScriptId}
+                    isProcessing={isProcessing}
+                    status={status}
+                    completedSteps={completedSteps}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
@@ -507,6 +687,23 @@ export default function Home() {
         onClose={() => setIsApiConfigOpen(false)}
         onSave={handleSaveApiConfig}
         initialConfig={apiConfig}
+      />
+
+      <ActionBar
+        isProcessing={isProcessing}
+        isPaused={isPaused}
+        isApiConfigured={isApiConfigured}
+        transcript={transcript}
+        handleGenerateContent={handleGenerateContent}
+        handleNextStep={handleNextStep}
+        handlePauseResume={handlePauseResume}
+        currentStep={currentStep}
+        stepInputs={stepInputs}
+        setStepInputs={setStepInputs}
+        showStepInput={showStepInput}
+        setShowStepInput={setShowStepInput}
+        status={status}
+        loadingMessage={loadingMessage}
       />
     </div>
   )
