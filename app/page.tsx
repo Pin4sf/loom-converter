@@ -14,10 +14,13 @@ import {
   generateContentIdeas,
   generateLinkedInPost,
   generateVideoScript,
+  refineVideoScript,
+  regenerateVideoScript
 } from "@/lib/api"
 import { getRandomLoadingMessage } from "@/lib/utils"
 import AgentGraph from "@/components/agent-graph"
 import ContentIdeasList from "@/components/content-ideas-list"
+import ContentIdeasCarousel from "@/components/content-ideas-carousel"
 import VideoScriptViewer from "@/components/video-script-viewer"
 import LinkedInPostViewer from "@/components/linkedin-post-viewer"
 import StepConfigDialog from "@/components/step-config-dialog"
@@ -26,6 +29,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { toast } from "sonner"
 import ApiConfigDialog, { type ApiConfig } from "@/components/api-config-dialog"
 import VideoScriptEditor from "@/components/video-script-editor"
+import EnhancedVideoScriptEditor from "@/components/enhanced-video-script-editor"
 
 interface ActionBarProps {
   isProcessing: boolean;
@@ -639,17 +643,86 @@ export default function Home() {
 
             {contentIdeas.length > 0 && (
               <div className="mt-8 space-y-8">
-                <ContentIdeasList
+                <ContentIdeasCarousel
                   ideas={contentIdeas}
                   selectedIdeaId={selectedIdeaId}
                   onSelectIdea={handleSelectIdea}
                   onUpdateIdea={handleUpdateIdea}
                 />
 
-                {selectedScript && (
-                  <VideoScriptEditor
+                {selectedScript && selectedIdea && (
+                  <EnhancedVideoScriptEditor
                     script={selectedScript}
+                    contentIdea={selectedIdea}
+                    transcript={transcript}
                     onSave={handleUpdateScript}
+                    onRefine={async (script, instructions) => {
+                      try {
+                        toast.loading("Refining your script...", {
+                          id: "refine-script",
+                        });
+                        
+                        // Call the API function
+                        const refinedScript = await refineVideoScript(script, instructions);
+                        
+                        // Update the script in the UI
+                        handleUpdateScript(refinedScript);
+                        
+                        // Update toast
+                        toast.success("Script refined successfully", {
+                          id: "refine-script",
+                        });
+                        
+                        return refinedScript;
+                      } catch (error) {
+                        console.error("Error refining script:", error);
+                        toast.error("Failed to refine script: " + (error instanceof Error ? error.message : "Unknown error"), {
+                          id: "refine-script",
+                        });
+                        throw error;
+                      }
+                    }}
+                    onRegenerate={async (idea, transcript, instructions) => {
+                      try {
+                        toast.loading("Regenerating your script...", {
+                          id: "regenerate-script",
+                        });
+                        
+                        // Call the API function
+                        const newScript = await regenerateVideoScript(idea, transcript, instructions);
+                        
+                        // Replace the existing script in the array
+                        setVideoScripts(scripts => 
+                          scripts.map(s => 
+                            s.ideaId === idea.id ? newScript : s
+                          )
+                        );
+                        
+                        // Update selected script
+                        setSelectedScriptId(newScript.id);
+                        
+                        // Update toast
+                        toast.success("Script regenerated successfully", {
+                          id: "regenerate-script",
+                        });
+                        
+                        return newScript;
+                      } catch (error) {
+                        console.error("Error regenerating script:", error);
+                        toast.error("Failed to regenerate script: " + (error instanceof Error ? error.message : "Unknown error"), {
+                          id: "regenerate-script",
+                        });
+                        throw error;
+                      }
+                    }}
+                    onContinue={() => {
+                      if (currentStep === 'scripts') {
+                        handleNextStep();
+                      } else {
+                        setCurrentStep('linkedin');
+                        setShowStepInput(true);
+                      }
+                    }}
                   />
                 )}
 

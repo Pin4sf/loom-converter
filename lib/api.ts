@@ -44,7 +44,7 @@ export function getApiConfig() {
             return {
                 anthropicApiKey,
                 openaiApiKey,
-                preferredProvider,
+                preferredProvider: preferredProvider as "anthropic" | "openai",
             };
         }
     }
@@ -54,9 +54,19 @@ export function getApiConfig() {
         const saved = localStorage.getItem("apiConfig");
         if (saved) {
             try {
-                return JSON.parse(saved);
+                const config = JSON.parse(saved);
+                // Validate the config object has the expected structure
+                if (typeof config === 'object' && config !== null) {
+                    return {
+                        openaiApiKey: config.openaiApiKey || "",
+                        anthropicApiKey: config.anthropicApiKey || "",
+                        preferredProvider: config.preferredProvider || "anthropic",
+                    };
+                }
             } catch (e) {
                 console.error("Failed to parse saved API config", e);
+                // Clear the invalid config
+                localStorage.removeItem("apiConfig");
             }
         }
     }
@@ -113,6 +123,106 @@ export async function generateVideoScript(
     } catch (error: any) {
         console.error("Error generating video script:", error);
         throw error;
+    }
+}
+
+// Refine an existing video script with new instructions
+export async function refineVideoScript(
+    script: VideoScript,
+    instructions: string
+) {
+    try {
+        console.log('Initiating script refinement with instructions:', instructions);
+        
+        // Validate inputs
+        if (!script || !script.script) {
+            throw new Error('Invalid script: The script object or content is missing');
+        }
+        
+        if (!instructions || instructions.trim() === '') {
+            throw new Error('Refinement instructions cannot be empty');
+        }
+        
+        // Get API configuration
+        const config = getApiConfig();
+        if (!config) {
+            throw new Error('API configuration is missing. Please configure your API settings');
+        }
+        
+        console.log('Using API provider:', config.preferredProvider);
+        
+        // Call server function
+        const result = await refineVideoScriptServer(
+            config,
+            script,
+            instructions
+        );
+        
+        console.log('Script refinement completed successfully');
+        return result;
+    } catch (error: any) {
+        console.error("Error refining video script:", error);
+        // Rethrow with more context if needed
+        if (error.message.includes('API key')) {
+            throw new Error(`API key issue: ${error.message}`);
+        } else if (error.message.includes('timeout')) {
+            throw new Error(`Timeout: The refinement request took too long. Please try again.`);
+        } else {
+            throw error;
+        }
+    }
+}
+
+// Regenerate a video script completely
+export async function regenerateVideoScript(
+    idea: ContentIdea,
+    transcript: string,
+    instructions: string
+) {
+    try {
+        console.log('Initiating script regeneration with idea:', idea.title);
+        
+        // Validate inputs
+        if (!idea || !idea.title || !idea.description) {
+            throw new Error('Invalid content idea: The idea object or its properties are missing');
+        }
+        
+        if (!transcript || transcript.trim() === '') {
+            throw new Error('Transcript cannot be empty for script regeneration');
+        }
+        
+        if (!instructions || instructions.trim() === '') {
+            throw new Error('Regeneration instructions cannot be empty');
+        }
+        
+        // Get API configuration
+        const config = getApiConfig();
+        if (!config) {
+            throw new Error('API configuration is missing. Please configure your API settings');
+        }
+        
+        console.log('Using API provider:', config.preferredProvider);
+        
+        // Call server function
+        const result = await regenerateVideoScriptServer(
+            config,
+            idea,
+            transcript,
+            instructions
+        );
+        
+        console.log('Script regeneration completed successfully');
+        return result;
+    } catch (error: any) {
+        console.error("Error regenerating video script:", error);
+        // Rethrow with more context if needed
+        if (error.message.includes('API key')) {
+            throw new Error(`API key issue: ${error.message}`);
+        } else if (error.message.includes('timeout')) {
+            throw new Error(`Timeout: The regeneration request took too long. Please try again.`);
+        } else {
+            throw error;
+        }
     }
 }
 

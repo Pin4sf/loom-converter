@@ -41,6 +41,15 @@ export default function ApiConfigDialog({
         }
     );
 
+    // Validate API keys format
+    const isOpenAIKeyValid = config.openaiApiKey.trim() === "" || config.openaiApiKey.trim().startsWith("sk-");
+    const isAnthropicKeyValid = config.anthropicApiKey.trim() === "" || config.anthropicApiKey.trim().startsWith("sk-ant");
+    
+    // Check if the selected provider has a valid key
+    const isSelectedProviderConfigured = 
+        (config.preferredProvider === "openai" && config.openaiApiKey.trim() !== "") ||
+        (config.preferredProvider === "anthropic" && config.anthropicApiKey.trim() !== "");
+
     const handleSave = () => {
         // Trim API keys to avoid whitespace issues
         const trimmedConfig = {
@@ -48,6 +57,24 @@ export default function ApiConfigDialog({
             openaiApiKey: config.openaiApiKey.trim(),
             anthropicApiKey: config.anthropicApiKey.trim(),
         };
+        
+        // Validate the selected provider has a key
+        if (!isSelectedProviderConfigured) {
+            // Show warning but still allow saving
+            alert(`Warning: You've selected ${config.preferredProvider === "openai" ? "OpenAI" : "Anthropic"} as your preferred provider, but haven't provided an API key for it. The application may not work correctly.`);
+        }
+        
+        // Validate key format
+        if (trimmedConfig.openaiApiKey && !isOpenAIKeyValid) {
+            alert("Warning: Your OpenAI API key doesn't start with 'sk-'. Please check that you've entered it correctly.");
+            return;
+        }
+        
+        if (trimmedConfig.anthropicApiKey && !isAnthropicKeyValid) {
+            alert("Warning: Your Anthropic API key doesn't start with 'sk-ant'. Please check that you've entered it correctly.");
+            return;
+        }
+        
         onSave(trimmedConfig);
         onClose();
     };
