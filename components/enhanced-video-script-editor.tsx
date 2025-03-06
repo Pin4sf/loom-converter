@@ -217,18 +217,25 @@ export default function EnhancedVideoScriptEditor({
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
-                onClick={handleRefineScript}
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log('Refine button clicked, calling handleRefineScript');
+                  handleRefineScript();
+                }}
                 disabled={isRefining || !refineInstructions.trim() || isRegenerating}
-                className="hover:no-underline bg-blue-600 hover:bg-blue-700 text-white"
+                // Use default styling for yellow color scheme
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isRefining ? 'animate-spin' : ''}`} />
                 {isRefining ? "Refining..." : "Refine Current Script"}
               </Button>
               <Button
-                variant="outline"
-                onClick={handleRegenerateScript}
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log('Regenerate button clicked, calling handleRegenerateScript');
+                  handleRegenerateScript();
+                }}
                 disabled={isRegenerating || !refineInstructions.trim() || isRefining}
-                className="hover:no-underline border-blue-600 text-blue-600 hover:bg-blue-50"
+                // Use default styling for yellow color scheme
               >
                 <RotateCcw className={`mr-2 h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
                 {isRegenerating ? "Regenerating..." : "Regenerate Completely"}

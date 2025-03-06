@@ -150,9 +150,10 @@ const ActionBar = ({
             )}
             <Button
               onClick={() => {
-                if (currentStep !== 'idle' && !isProcessing && !showStepInput) {
-                  setShowStepInput(true);
-                } else if (currentStep === 'idle' && !isProcessing) {
+                // Directly trigger the next step functionality
+                console.log('Run Next Step button clicked');
+                if (!isProcessing) {
+                  // Run the next step without showing the input panel first
                   handleNextStep();
                 }
               }}
@@ -427,16 +428,17 @@ export default function Home() {
   const handleNextStep = async () => {
     if (!transcript.trim() || !isApiConfigured) return;
 
+    console.log('handleNextStep called, currentStep:', currentStep);
+
     try {
       switch (currentStep) {
         case 'idle':
+          console.log('Starting with ideas generation');
           setCurrentStep('ideas');
-          setShowStepInput(true);
-          break;
-
-        case 'ideas':
-          setIsProcessing(true);
+          // Skip showing the input panel to make the workflow more direct
           setShowStepInput(false);
+          // Immediately trigger ideas generation
+          setIsProcessing(true);
           updateStatus("ideas", 10);
           const ideas = await generateContentIdeas(transcript, stepInputs.ideas.prompt || instructions);
           setContentIdeas(ideas);
@@ -451,10 +453,32 @@ export default function Home() {
           setCurrentStep('scripts');
           updateStatus("ideas", 100);
           setIsProcessing(false);
-          setShowStepInput(true);
+          setShowStepInput(false); // Don't show input panel by default
+          break;
+
+        case 'ideas':
+          console.log('Proceeding to script generation');
+          setIsProcessing(true);
+          setShowStepInput(false);
+          updateStatus("ideas", 10);
+          const ideasResult = await generateContentIdeas(transcript, stepInputs.ideas.prompt || instructions);
+          setContentIdeas(ideasResult);
+          if (ideasResult.length > 0) {
+            setSelectedIdeaId(ideasResult[0].id);
+          }
+          setStepInputs(prev => ({
+            ...prev,
+            ideas: { ...prev.ideas, result: ideasResult }
+          }));
+          setCompletedSteps(prev => ({ ...prev, ideas: true }));
+          setCurrentStep('scripts');
+          updateStatus("ideas", 100);
+          setIsProcessing(false);
+          setShowStepInput(false); // Don't show input panel by default
           break;
 
         case 'scripts':
+          console.log('Generating video script');
           if (!selectedIdeaId) {
             toast.error("Please select and finalize a content idea first");
             return;
@@ -469,11 +493,16 @@ export default function Home() {
             return;
           }
           
+          console.log('Selected idea:', selectedIdea.title);
+          console.log('Using transcript length:', transcript.length);
+          
           const generatedScript = await generateVideoScript(
             selectedIdea, 
             transcript, 
             `Use this content idea as basis: ${selectedIdea.title}\n${selectedIdea.description}\n\n${stepInputs.scripts.prompt || instructions}`
           );
+          
+          console.log('Script generated successfully, id:', generatedScript.id);
           setVideoScripts([...videoScripts, generatedScript]);
           setStepInputs(prev => ({
             ...prev,
@@ -488,10 +517,11 @@ export default function Home() {
           setCurrentStep('linkedin');
           updateStatus("scripts", 100);
           setIsProcessing(false);
-          setShowStepInput(true);
+          setShowStepInput(false); // Don't show input panel by default
           break;
 
         case 'linkedin':
+          console.log('Generating LinkedIn post');
           if (!selectedScriptId) {
             toast.error("Please select and finalize a video script first");
             return;
@@ -506,19 +536,27 @@ export default function Home() {
             return;
           }
 
-          const post = await generateLinkedInPost(selectedScript);
-          setLinkedInPosts([...linkedInPosts, post]);
-          setStepInputs(prev => ({
-            ...prev,
-            linkedin: { 
-              ...prev.linkedin, 
-              result: post,
-              selectedScriptId 
-            }
-          }));
-          setCompletedSteps(prev => ({ ...prev, linkedin: true }));
-          setCurrentStep('idle');
-          updateStatus("complete", 100);
+          console.log('Generating LinkedIn post for script ID:', selectedScriptId);
+          try {
+            const post = await generateLinkedInPost(selectedScript);
+            console.log('LinkedIn post generated successfully');
+            setLinkedInPosts([...linkedInPosts, post]);
+            setStepInputs(prev => ({
+              ...prev,
+              linkedin: { 
+                ...prev.linkedin, 
+                result: post,
+                selectedScriptId 
+              }
+            }));
+            setCompletedSteps(prev => ({ ...prev, linkedin: true }));
+            setCurrentStep('idle');
+            updateStatus("complete", 100);
+            toast.success("LinkedIn post generated successfully!");
+          } catch (error) {
+            console.error('Error generating LinkedIn post:', error);
+            toast.error("Failed to generate LinkedIn post: " + (error instanceof Error ? error.message : "Unknown error"));
+          }
           setIsProcessing(false);
           break;
       }
