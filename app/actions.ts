@@ -1,5 +1,8 @@
 "use server";
 
+// Add Edge Runtime directive
+export const runtime = 'edge';
+
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
@@ -219,7 +222,8 @@ Example format:
 `;
 
         let text = "";
-        const timeout = 30000; // 30 second timeout
+        // Edge functions can run for up to 30 seconds, so we're safe with a 25s timeout
+        const timeout = 25000; 
 
         try {
             if (provider === "anthropic" && config.anthropicApiKey) {
@@ -259,7 +263,7 @@ Example format:
                     hasAnthropicKey: Boolean(config.anthropicApiKey),
                     hasOpenAIKey: Boolean(config.openaiApiKey)
                 };
-                console.error("API configuration problem in refineVideoScriptServer:", configDebug);
+                console.error("API configuration problem in generateContentIdeas:", configDebug);
                 
                 throw new Error(
                     "No valid API configuration found. Please check your API settings."
@@ -438,7 +442,8 @@ Format your response as a well-structured blog post that could be read as a scri
 `;
 
         let text = "";
-        const timeout = 60000; // 60 second timeout for longer content
+        // Edge functions can run for up to 30 seconds, so adjust timeout accordingly
+        const timeout = 25000; 
 
         try {
             if (provider === "anthropic" && config.anthropicApiKey) {
@@ -478,7 +483,7 @@ Format your response as a well-structured blog post that could be read as a scri
                     hasAnthropicKey: Boolean(config.anthropicApiKey),
                     hasOpenAIKey: Boolean(config.openaiApiKey)
                 };
-                console.error("API configuration problem in refineVideoScriptServer:", configDebug);
+                console.error("API configuration problem in generateVideoScript:", configDebug);
                 
                 throw new Error(
                     "No valid API configuration found. Please check your API settings."
@@ -591,7 +596,8 @@ Please provide the complete refined script. Keep what works well from the origin
 `;
 
         let text = "";
-        const timeout = 60000; // 60 second timeout for longer content
+        // Edge functions can run for up to 30 seconds, so adjust the timeout appropriately
+        const timeout = 25000; 
 
         try {
             if (provider === "anthropic" && config.anthropicApiKey) {
@@ -755,7 +761,8 @@ Format your response as a well-structured blog post that could be read as a scri
 `;
 
         let text = "";
-        const timeout = 60000; // 60 second timeout for longer content
+        // Edge functions have a 30-second limit, so we'll use a 25-second timeout
+        const timeout = 25000; 
 
         try {
             if (provider === "anthropic" && config.anthropicApiKey) {
@@ -795,7 +802,7 @@ Format your response as a well-structured blog post that could be read as a scri
                     hasAnthropicKey: Boolean(config.anthropicApiKey),
                     hasOpenAIKey: Boolean(config.openaiApiKey)
                 };
-                console.error("API configuration problem in refineVideoScriptServer:", configDebug);
+                console.error("API configuration problem in regenerateVideoScriptServer:", configDebug);
                 
                 throw new Error(
                     "No valid API configuration found. Please check your API settings."
@@ -896,7 +903,8 @@ Format your response as a ready-to-post LinkedIn update. Do not include any expl
 `;
 
         let text = "";
-        const timeout = 30000; // 30 second timeout
+        // Edge functions can run for up to 30 seconds, so adjust timeout
+        const timeout = 25000; 
 
         try {
             if (provider === "anthropic" && config.anthropicApiKey) {
@@ -936,7 +944,7 @@ Format your response as a ready-to-post LinkedIn update. Do not include any expl
                     hasAnthropicKey: Boolean(config.anthropicApiKey),
                     hasOpenAIKey: Boolean(config.openaiApiKey)
                 };
-                console.error("API configuration problem in refineVideoScriptServer:", configDebug);
+                console.error("API configuration problem in generateLinkedInPost:", configDebug);
                 
                 throw new Error(
                     "No valid API configuration found. Please check your API settings."

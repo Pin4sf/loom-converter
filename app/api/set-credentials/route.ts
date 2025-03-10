@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+// Add Edge Runtime directive
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 // Configure CORS headers for the API route
