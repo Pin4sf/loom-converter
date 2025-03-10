@@ -2,7 +2,7 @@
 import type { ContentIdea, LinkedInPost, VideoScript } from "@/lib/api";
 
 // Set the API URL based on environment
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://contentformer-backend-production.up.railway.app/';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://contentformer-backend-production.up.railway.app').replace(/\/$/, '');
 
 /**
  * Test API connection with the backend
@@ -13,6 +13,7 @@ export async function testApiConnection(config: {
   preferredProvider: "anthropic" | "openai";
 }) {
   try {
+    console.log(`Making request to: ${API_URL}/api/test-connection`);
     const response = await fetch(`${API_URL}/api/test-connection`, {
       method: 'POST',
       headers: {
