@@ -1,8 +1,5 @@
 "use server";
 
-// Add Edge Runtime directive
-export const runtime = 'edge';
-
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
