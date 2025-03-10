@@ -2,7 +2,7 @@
 import type { ContentIdea, LinkedInPost, VideoScript } from "@/lib/api";
 
 // Set the API URL based on environment
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-url.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://contentformer-backend-production.up.railway.app/';
 
 /**
  * Test API connection with the backend
