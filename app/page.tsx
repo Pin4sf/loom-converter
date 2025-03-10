@@ -293,10 +293,11 @@ export default function Home() {
 
   const handleSaveApiConfig = (config: ApiConfig) => {
     setApiConfig(config)
-    // Save to localStorage
-    if (typeof window !== "undefined") {
-      localStorage.setItem("apiConfig", JSON.stringify(config))
-    }
+    // Save to both localStorage and HTTP-only cookies
+    // The saveApiConfig function will handle both storage methods
+    import("@/lib/api").then(({ saveApiConfig }) => {
+      saveApiConfig(config)
+    })
   }
 
   const handleGenerateContent = async () => {

@@ -4,7 +4,18 @@ import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
 import { v4 as uuidv4 } from "uuid";
+import { cookies } from "next/headers";
 import { ContentIdea, VideoScript, LinkedInPost } from "@/lib/api";
+
+// Get API configuration from HTTP-only cookies
+function getApiConfigFromCookies() {
+  const cookieStore = cookies();
+  return {
+    anthropicApiKey: cookieStore.get('anthropic-api-key')?.value || '',
+    openaiApiKey: cookieStore.get('openai-api-key')?.value || '',
+    preferredProvider: (cookieStore.get('preferred-provider')?.value || 'anthropic') as 'anthropic' | 'openai',
+  };
+}
 
 // Test API connection with a simple request
 export async function testApiConnection(config: {
@@ -13,6 +24,21 @@ export async function testApiConnection(config: {
     preferredProvider: "anthropic" | "openai";
 }) {
     try {
+        // Try to get config from cookies if not provided in parameters
+        if ((!config.anthropicApiKey || config.anthropicApiKey.trim() === "") && 
+            (!config.openaiApiKey || config.openaiApiKey.trim() === "")) {
+            const cookieConfig = getApiConfigFromCookies();
+            if (cookieConfig.anthropicApiKey || cookieConfig.openaiApiKey) {
+                console.log("Using API keys from HTTP-only cookies");
+                config = {
+                    ...config,
+                    anthropicApiKey: cookieConfig.anthropicApiKey || config.anthropicApiKey,
+                    openaiApiKey: cookieConfig.openaiApiKey || config.openaiApiKey,
+                    preferredProvider: cookieConfig.preferredProvider || config.preferredProvider
+                };
+            }
+        }
+        
         // Validate API configuration
         const provider = config.preferredProvider;
 
@@ -130,6 +156,21 @@ export async function generateContentIdeas(
     instructions = ""
 ) {
     try {
+        // Try to get config from cookies if not provided in parameters
+        if ((!config.anthropicApiKey || config.anthropicApiKey.trim() === "") && 
+            (!config.openaiApiKey || config.openaiApiKey.trim() === "")) {
+            const cookieConfig = getApiConfigFromCookies();
+            if (cookieConfig.anthropicApiKey || cookieConfig.openaiApiKey) {
+                console.log("Using API keys from HTTP-only cookies for content ideas generation");
+                config = {
+                    ...config,
+                    anthropicApiKey: cookieConfig.anthropicApiKey || config.anthropicApiKey,
+                    openaiApiKey: cookieConfig.openaiApiKey || config.openaiApiKey,
+                    preferredProvider: cookieConfig.preferredProvider || config.preferredProvider
+                };
+            }
+        }
+        
         // Validate API configuration
         const provider = config.preferredProvider;
 
@@ -339,6 +380,21 @@ export async function generateVideoScript(
     instructions = ""
 ) {
     try {
+        // Try to get config from cookies if not provided in parameters
+        if ((!config.anthropicApiKey || config.anthropicApiKey.trim() === "") && 
+            (!config.openaiApiKey || config.openaiApiKey.trim() === "")) {
+            const cookieConfig = getApiConfigFromCookies();
+            if (cookieConfig.anthropicApiKey || cookieConfig.openaiApiKey) {
+                console.log("Using API keys from HTTP-only cookies for video script generation");
+                config = {
+                    ...config,
+                    anthropicApiKey: cookieConfig.anthropicApiKey || config.anthropicApiKey,
+                    openaiApiKey: cookieConfig.openaiApiKey || config.openaiApiKey,
+                    preferredProvider: cookieConfig.preferredProvider || config.preferredProvider
+                };
+            }
+        }
+        
         // Validate API configuration
         const provider = config.preferredProvider;
 
@@ -485,6 +541,22 @@ export async function refineVideoScriptServer(
         console.log("Script title:", script.title);
         console.log("Instructions length:", instructions.length);
         console.log("Using provider:", config.preferredProvider);
+        
+        // Try to get config from cookies if not provided in parameters
+        if ((!config.anthropicApiKey || config.anthropicApiKey.trim() === "") && 
+            (!config.openaiApiKey || config.openaiApiKey.trim() === "")) {
+            const cookieConfig = getApiConfigFromCookies();
+            if (cookieConfig.anthropicApiKey || cookieConfig.openaiApiKey) {
+                console.log("Using API keys from HTTP-only cookies for script refinement");
+                config = {
+                    ...config,
+                    anthropicApiKey: cookieConfig.anthropicApiKey || config.anthropicApiKey,
+                    openaiApiKey: cookieConfig.openaiApiKey || config.openaiApiKey,
+                    preferredProvider: cookieConfig.preferredProvider || config.preferredProvider
+                };
+            }
+        }
+        
         // Validate API configuration
         const provider = config.preferredProvider;
 
@@ -623,6 +695,22 @@ export async function regenerateVideoScriptServer(
         console.log("Transcript length:", transcript.length);
         console.log("Instructions length:", instructions.length);
         console.log("Using provider:", config.preferredProvider);
+        
+        // Try to get config from cookies if not provided in parameters
+        if ((!config.anthropicApiKey || config.anthropicApiKey.trim() === "") && 
+            (!config.openaiApiKey || config.openaiApiKey.trim() === "")) {
+            const cookieConfig = getApiConfigFromCookies();
+            if (cookieConfig.anthropicApiKey || cookieConfig.openaiApiKey) {
+                console.log("Using API keys from HTTP-only cookies for script regeneration");
+                config = {
+                    ...config,
+                    anthropicApiKey: cookieConfig.anthropicApiKey || config.anthropicApiKey,
+                    openaiApiKey: cookieConfig.openaiApiKey || config.openaiApiKey,
+                    preferredProvider: cookieConfig.preferredProvider || config.preferredProvider
+                };
+            }
+        }
+        
         // Validate API configuration
         const provider = config.preferredProvider;
 
@@ -754,6 +842,21 @@ export async function generateLinkedInPost(
     script: VideoScript
 ) {
     try {
+        // Try to get config from cookies if not provided in parameters
+        if ((!config.anthropicApiKey || config.anthropicApiKey.trim() === "") && 
+            (!config.openaiApiKey || config.openaiApiKey.trim() === "")) {
+            const cookieConfig = getApiConfigFromCookies();
+            if (cookieConfig.anthropicApiKey || cookieConfig.openaiApiKey) {
+                console.log("Using API keys from HTTP-only cookies for LinkedIn post generation");
+                config = {
+                    ...config,
+                    anthropicApiKey: cookieConfig.anthropicApiKey || config.anthropicApiKey,
+                    openaiApiKey: cookieConfig.openaiApiKey || config.openaiApiKey,
+                    preferredProvider: cookieConfig.preferredProvider || config.preferredProvider
+                };
+            }
+        }
+        
         // Validate API configuration
         const provider = config.preferredProvider;
 
