@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { formatApiError } from "@/lib/apiStatusCheck";
-import { testApiConnection } from "@/app/actions"; // Import from server actions
+import { testApiConnection } from "@/lib/api"; // Import from api.ts instead of actions
 
 export default function ApiConnectionTest({ config }: { config: any }) {
     const [testing, setTesting] = useState(false);
@@ -20,12 +20,8 @@ export default function ApiConnectionTest({ config }: { config: any }) {
         setResult(null);
 
         try {
-            // Pass the config to the server action
-            const testResult = await testApiConnection({
-                anthropicApiKey: config.anthropicApiKey,
-                openaiApiKey: config.openaiApiKey,
-                preferredProvider: config.preferredProvider,
-            });
+            // Use the testApiConnection from lib/api.ts which handles both HTTP-only cookies and localStorage
+            const testResult = await testApiConnection();
             setResult(testResult);
         } catch (error: any) {
             setResult({

@@ -1,11 +1,20 @@
 // lib/api.ts
 import {
+    testApiConnection as testApiConnectionServer,
+    generateContentIdeas as generateContentIdeasServer,
+    generateVideoScript as generateVideoScriptServer,
+    refineVideoScriptServer,
+    regenerateVideoScriptServer,
+    generateLinkedInPost as generateLinkedInPostServer,
+} from "@/app/actions";
+
+import {
     testApiConnection as testApiConnectionClient,
     generateContentIdeas as generateContentIdeasClient,
     generateVideoScript as generateVideoScriptClient,
-    generateLinkedInPost as generateLinkedInPostClient,
     refineVideoScript as refineVideoScriptClient,
     regenerateVideoScript as regenerateVideoScriptClient,
+    generateLinkedInPost as generateLinkedInPostClient,
 } from "@/lib/api-client";
 
 // Types for our API responses
@@ -34,7 +43,15 @@ export interface ProcessingStatus {
     message: string;
 }
 
-// Get API configuration from environment variables, HTTP-only cookies, or localStorage
+// Check if HTTP-only cookies are available
+function hasHttpOnlyCookies() {
+    if (typeof window === "undefined") {
+        return true; // Assume true on server-side
+    }
+    return document.cookie.includes('hasApiConfig=true');
+}
+
+// Get API configuration from localStorage
 export function getApiConfig() {
     // Check for environment variables first
     if (typeof process !== "undefined" && process.env) {
@@ -52,7 +69,7 @@ export function getApiConfig() {
         }
     }
     
-    // Try to get from localStorage first (most reliable client-side storage)
+    // Try to get from localStorage
     if (typeof window !== "undefined") {
         const saved = localStorage.getItem("apiConfig");
         if (saved) {
@@ -81,8 +98,8 @@ export function getApiConfig() {
     };
 }
 
-// Save API configuration to localStorage
-export function saveApiConfig(config: {
+// Save API configuration to localStorage & set HTTP-only cookies
+export async function saveApiConfig(config: {
     anthropicApiKey?: string;
     openaiApiKey?: string;
     preferredProvider: "anthropic" | "openai";
@@ -92,6 +109,24 @@ export function saveApiConfig(config: {
         localStorage.setItem("apiConfig", JSON.stringify(config));
     }
     
+    // Also set HTTP-only cookies via API route
+    try {
+        const response = await fetch("/api/set-credentials", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(config),
+            credentials: "include" // Important for cookies
+        });
+        
+        if (!response.ok) {
+            console.error("Failed to set HTTP-only cookies:", await response.text());
+        }
+    } catch (error) {
+        console.error("Error setting HTTP-only cookies:", error);
+    }
+    
     return config;
 }
 
@@ -99,7 +134,14 @@ export function saveApiConfig(config: {
 export async function testApiConnection() {
     try {
         const config = getApiConfig();
-        return await testApiConnectionClient(config);
+        
+        // Use server action if HTTP-only cookies are available
+        if (hasHttpOnlyCookies()) {
+            return await testApiConnectionServer(config);
+        } else {
+            // Otherwise use client API
+            return await testApiConnectionClient(config);
+        }
     } catch (error: any) {
         console.error("API connection test failed:", error);
         throw error;
@@ -113,11 +155,14 @@ export async function generateContentIdeas(
 ) {
     try {
         const config = getApiConfig();
-        return await generateContentIdeasClient(
-            config,
-            transcript,
-            instructions
-        );
+        
+        // Use server action if HTTP-only cookies are available
+        if (hasHttpOnlyCookies()) {
+            return await generateContentIdeasServer(config, transcript, instructions);
+        } else {
+            // Otherwise use client API
+            return await generateContentIdeasClient(config, transcript, instructions);
+        }
     } catch (error: any) {
         console.error("Error generating content ideas:", error);
         throw error;
@@ -132,12 +177,14 @@ export async function generateVideoScript(
 ) {
     try {
         const config = getApiConfig();
-        return await generateVideoScriptClient(
-            config,
-            idea,
-            transcript,
-            instructions
-        );
+        
+        // Use server action if HTTP-only cookies are available
+        if (hasHttpOnlyCookies()) {
+            return await generateVideoScriptServer(config, idea, transcript, instructions);
+        } else {
+            // Otherwise use client API
+            return await generateVideoScriptClient(config, idea, transcript, instructions);
+        }
     } catch (error: any) {
         console.error("Error generating video script:", error);
         throw error;
@@ -169,15 +216,17 @@ export async function refineVideoScript(
         
         console.log('Using API provider:', config.preferredProvider);
         
-        // Call backend function
-        const result = await refineVideoScriptClient(
-            config,
-            script,
-            instructions
-        );
-        
-        console.log('Script refinement completed successfully');
-        return result;
+        // Use server action if HTTP-only cookies are available
+        if (hasHttpOnlyCookies()) {
+            const result = await refineVideoScriptServer(config, script, instructions);
+            console.log('Script refinement completed successfully');
+            return result;
+        } else {
+            // Otherwise use client API
+            const result = await refineVideoScriptClient(config, script, instructions);
+            console.log('Script refinement completed successfully');
+            return result;
+        }
     } catch (error: any) {
         console.error("Error refining video script:", error);
         // Rethrow with more context if needed
@@ -221,16 +270,17 @@ export async function regenerateVideoScript(
         
         console.log('Using API provider:', config.preferredProvider);
         
-        // Call backend function
-        const result = await regenerateVideoScriptClient(
-            config,
-            idea,
-            transcript,
-            instructions
-        );
-        
-        console.log('Script regeneration completed successfully');
-        return result;
+        // Use server action if HTTP-only cookies are available
+        if (hasHttpOnlyCookies()) {
+            const result = await regenerateVideoScriptServer(config, idea, transcript, instructions);
+            console.log('Script regeneration completed successfully');
+            return result;
+        } else {
+            // Otherwise use client API
+            const result = await regenerateVideoScriptClient(config, idea, transcript, instructions);
+            console.log('Script regeneration completed successfully');
+            return result;
+        }
     } catch (error: any) {
         console.error("Error regenerating video script:", error);
         // Rethrow with more context if needed
@@ -248,7 +298,14 @@ export async function regenerateVideoScript(
 export async function generateLinkedInPost(script: VideoScript) {
     try {
         const config = getApiConfig();
-        return await generateLinkedInPostClient(config, script);
+        
+        // Use server action if HTTP-only cookies are available
+        if (hasHttpOnlyCookies()) {
+            return await generateLinkedInPostServer(config, script);
+        } else {
+            // Otherwise use client API
+            return await generateLinkedInPostClient(config, script);
+        }
     } catch (error: any) {
         console.error("Error generating LinkedIn post:", error);
         throw error;

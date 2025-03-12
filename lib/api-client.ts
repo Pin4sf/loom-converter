@@ -2,7 +2,9 @@
 import type { ContentIdea, LinkedInPost, VideoScript } from "@/lib/api";
 
 // Set the API URL based on environment
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://contentformer-backend-production.up.railway.app').replace(/\/$/, '');
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+
+console.log(`API_URL configured as: ${API_URL}`);
 
 /**
  * Test API connection with the backend
@@ -20,6 +22,9 @@ export async function testApiConnection(config: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(config),
+      // Add mode and credentials settings for CORS
+      mode: 'cors',
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -30,10 +35,19 @@ export async function testApiConnection(config: {
     return await response.json();
   } catch (error: any) {
     console.error("API connection test failed:", error);
+    // Return a more user-friendly error response
     return {
       success: false,
-      message: error.message || "Failed to connect to API service",
+      message: error.message || "Failed to connect to API service. Check your network connection and ensure the backend is running.",
       error,
+      details: {
+        url: `${API_URL}/api/test-connection`,
+        config: {
+          ...config,
+          anthropicApiKey: config.anthropicApiKey ? '***' : undefined, // Mask for logging
+          openaiApiKey: config.openaiApiKey ? '***' : undefined, // Mask for logging
+        }
+      }
     };
   }
 }
@@ -61,6 +75,8 @@ export async function generateContentIdeas(
         transcript,
         instructions
       }),
+      mode: 'cors',
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -100,6 +116,8 @@ export async function generateVideoScript(
         transcript,
         instructions
       }),
+      mode: 'cors',
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -137,6 +155,8 @@ export async function refineVideoScript(
         script,
         instructions
       }),
+      mode: 'cors',
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -176,6 +196,8 @@ export async function regenerateVideoScript(
         transcript,
         instructions
       }),
+      mode: 'cors',
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -211,6 +233,8 @@ export async function generateLinkedInPost(
         ...config,
         script
       }),
+      mode: 'cors',
+      credentials: 'include',
     });
 
     if (!response.ok) {
